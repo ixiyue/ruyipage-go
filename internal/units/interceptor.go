@@ -461,13 +461,13 @@ func (i *Interceptor) Start(
 	}
 
 	if hasString(phases, "beforeRequestSent") {
-		if err := callbackDriver.SetGlobalCallback(listenerBeforeRequestSent, i.onIntercept, false); err != nil {
+		if err := callbackDriver.SetCallback(listenerBeforeRequestSent, i.onIntercept, false); err != nil {
 			i.cleanupStart(stringifyNetworkValue(result["intercept"]), subscriptionID, requestCollector, responseCollector)
 			return nil, err
 		}
 	}
 	if hasString(phases, "responseStarted") {
-		if err := callbackDriver.SetGlobalCallback("network.responseStarted", i.onResponseIntercept, false); err != nil {
+		if err := callbackDriver.SetCallback("network.responseStarted", i.onResponseIntercept, false); err != nil {
 			callbackDriver.RemoveCallback(listenerBeforeRequestSent, false)
 			callbackDriver.RemoveGlobalCallback(listenerBeforeRequestSent, false)
 			i.cleanupStart(stringifyNetworkValue(result["intercept"]), subscriptionID, requestCollector, responseCollector)
@@ -475,7 +475,7 @@ func (i *Interceptor) Start(
 		}
 	}
 	if hasString(phases, "authRequired") {
-		if err := callbackDriver.SetGlobalCallback("network.authRequired", i.onAuth, false); err != nil {
+		if err := callbackDriver.SetCallback("network.authRequired", i.onAuth, false); err != nil {
 			callbackDriver.RemoveCallback(listenerBeforeRequestSent, false)
 			callbackDriver.RemoveCallback("network.responseStarted", false)
 			callbackDriver.RemoveGlobalCallback(listenerBeforeRequestSent, false)
