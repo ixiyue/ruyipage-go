@@ -336,12 +336,7 @@ func decodeNetworkBodyValue(value any) (string, bool) {
 		case "string":
 			return stringifyNetworkValue(rawValue), true
 		case "base64":
-			text := stringifyNetworkValue(rawValue)
-			decoded, err := base64.StdEncoding.DecodeString(text)
-			if err != nil {
-				return text, true
-			}
-			return string(decoded), true
+			return stringifyNetworkValue(rawValue), true
 		default:
 			if rawValue == nil {
 				return "", false
