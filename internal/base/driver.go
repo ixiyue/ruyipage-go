@@ -281,17 +281,20 @@ func (d *BrowserBiDiDriver) Run(method string, params map[string]any, timeout ti
 
 // SetCallback 注册或覆盖指定事件回调；callback 为 nil 时等价于移除。
 func (d *BrowserBiDiDriver) SetCallback(event string, callback EventCallback, context string, immediate bool) error {
+	return d.SetCallbackTab(event, callback, context, "", immediate)
+}
+
+func (d *BrowserBiDiDriver) SetCallbackTab(event string, callback EventCallback, context string, tab string, immediate bool) error {
 	if d == nil {
 		return support.NewPageDisconnectedError("BrowserBiDiDriver 未初始化", nil)
 	}
 
-	route := eventRoute{event: event, context: context}
+	route := eventRoute{event: event, context: context, tab: tab}
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	d.ensureEventStateLocked()
-
 	if immediate {
 		if callback == nil {
 			delete(d.immediateHandlers, route)
@@ -310,7 +313,7 @@ func (d *BrowserBiDiDriver) SetCallback(event string, callback EventCallback, co
 		return nil
 	}
 
-	subscription, err := d.emitter.On(event, context, callback)
+	subscription, err := d.emitter.On(event, context, tab, callback)
 	if err != nil {
 		return err
 	}
@@ -320,11 +323,15 @@ func (d *BrowserBiDiDriver) SetCallback(event string, callback EventCallback, co
 
 // RemoveCallback 移除指定事件回调。
 func (d *BrowserBiDiDriver) RemoveCallback(event string, context string, immediate bool) {
+	d.RemoveCallbackTab(event, context, "", immediate)
+}
+
+func (d *BrowserBiDiDriver) RemoveCallbackTab(event string, context string, tab string, immediate bool) {
 	if d == nil {
 		return
 	}
 
-	route := eventRoute{event: event, context: context}
+	route := eventRoute{event: event, context: context, tab: tab}
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -578,6 +585,13 @@ func (d *ContextDriver) SetGlobalCallback(event string, callback EventCallback, 
 	return d.browserDriver.SetCallback(event, callback, "", immediate)
 }
 
+func (d *ContextDriver) SetGlobalTabCallback(event string, callback EventCallback, immediate bool) error {
+	if d == nil || d.browserDriver == nil {
+		return support.NewPageDisconnectedError("ContextDriver 未初始化", nil)
+	}
+	return d.browserDriver.SetCallbackTab(event, callback, "", d.contextID, immediate)
+}
+
 // RemoveCallback 移除当前 context 的事件回调。
 func (d *ContextDriver) RemoveCallback(event string, immediate bool) {
 	if d == nil || d.browserDriver == nil {
@@ -592,6 +606,13 @@ func (d *ContextDriver) RemoveGlobalCallback(event string, immediate bool) {
 		return
 	}
 	d.browserDriver.RemoveCallback(event, "", immediate)
+}
+
+func (d *ContextDriver) RemoveGlobalTabCallback(event string, immediate bool) {
+	if d == nil || d.browserDriver == nil {
+		return
+	}
+	d.browserDriver.RemoveCallbackTab(event, "", d.contextID, immediate)
 }
 
 func cloneParams(params map[string]any) map[string]any {

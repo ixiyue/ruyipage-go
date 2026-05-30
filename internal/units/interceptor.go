@@ -461,25 +461,25 @@ func (i *Interceptor) Start(
 	}
 
 	if hasString(phases, "beforeRequestSent") {
-		if err := callbackDriver.SetCallback(listenerBeforeRequestSent, i.onIntercept, false); err != nil {
+		if err := callbackDriver.SetGlobalTabCallback(listenerBeforeRequestSent, i.onIntercept, false); err != nil {
 			i.cleanupStart(stringifyNetworkValue(result["intercept"]), subscriptionID, requestCollector, responseCollector)
 			return nil, err
 		}
 	}
 	if hasString(phases, "responseStarted") {
-		if err := callbackDriver.SetCallback("network.responseStarted", i.onResponseIntercept, false); err != nil {
+		if err := callbackDriver.SetGlobalTabCallback("network.responseStarted", i.onResponseIntercept, false); err != nil {
 			callbackDriver.RemoveCallback(listenerBeforeRequestSent, false)
-			callbackDriver.RemoveGlobalCallback(listenerBeforeRequestSent, false)
+			callbackDriver.RemoveGlobalTabCallback(listenerBeforeRequestSent, false)
 			i.cleanupStart(stringifyNetworkValue(result["intercept"]), subscriptionID, requestCollector, responseCollector)
 			return nil, err
 		}
 	}
 	if hasString(phases, "authRequired") {
-		if err := callbackDriver.SetCallback("network.authRequired", i.onAuth, false); err != nil {
+		if err := callbackDriver.SetGlobalTabCallback("network.authRequired", i.onAuth, false); err != nil {
 			callbackDriver.RemoveCallback(listenerBeforeRequestSent, false)
 			callbackDriver.RemoveCallback("network.responseStarted", false)
-			callbackDriver.RemoveGlobalCallback(listenerBeforeRequestSent, false)
-			callbackDriver.RemoveGlobalCallback("network.responseStarted", false)
+			callbackDriver.RemoveGlobalTabCallback(listenerBeforeRequestSent, false)
+			callbackDriver.RemoveGlobalTabCallback("network.responseStarted", false)
 			i.cleanupStart(stringifyNetworkValue(result["intercept"]), subscriptionID, requestCollector, responseCollector)
 			return nil, err
 		}
@@ -549,9 +549,9 @@ func (i *Interceptor) Stop() {
 	callbackDriver.RemoveCallback(listenerBeforeRequestSent, false)
 	callbackDriver.RemoveCallback("network.responseStarted", false)
 	callbackDriver.RemoveCallback("network.authRequired", false)
-	callbackDriver.RemoveGlobalCallback(listenerBeforeRequestSent, false)
-	callbackDriver.RemoveGlobalCallback("network.responseStarted", false)
-	callbackDriver.RemoveGlobalCallback("network.authRequired", false)
+	callbackDriver.RemoveGlobalTabCallback(listenerBeforeRequestSent, false)
+	callbackDriver.RemoveGlobalTabCallback("network.responseStarted", false)
+	callbackDriver.RemoveGlobalTabCallback("network.authRequired", false)
 
 	timeout := i.resolveTimeout()
 	if interceptID != "" {

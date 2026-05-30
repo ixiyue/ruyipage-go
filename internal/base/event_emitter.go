@@ -24,6 +24,7 @@ const (
 type EventCallback func(params map[string]any)
 
 type eventRoute struct {
+	tab     string
 	event   string
 	context string
 }
@@ -101,13 +102,13 @@ func NewEventEmitter() *EventEmitter {
 }
 
 // On 注册持续事件监听。
-func (e *EventEmitter) On(event string, context string, handler EventCallback) (*EventSubscription, error) {
-	return e.add(event, context, handler, false)
+func (e *EventEmitter) On(event string, context string, tab string, handler EventCallback) (*EventSubscription, error) {
+	return e.add(event, context, tab, handler, false)
 }
 
 // Once 注册一次性事件监听。
-func (e *EventEmitter) Once(event string, context string, handler EventCallback) (*EventSubscription, error) {
-	return e.add(event, context, handler, true)
+func (e *EventEmitter) Once(event string, context string, tab string, handler EventCallback) (*EventSubscription, error) {
+	return e.add(event, context, tab, handler, true)
 }
 
 // Off 注销订阅；重复注销安全返回 false。
@@ -133,7 +134,6 @@ func (e *EventEmitter) Emit(event string, context string, params map[string]any)
 	if err != nil {
 		return err
 	}
-
 	for _, subscription := range subscriptions {
 		subscription.invoke(params)
 	}
@@ -166,12 +166,12 @@ func (e *EventEmitter) Close() error {
 	return nil
 }
 
-func (e *EventEmitter) add(event string, context string, handler EventCallback, once bool) (*EventSubscription, error) {
+func (e *EventEmitter) add(event string, context string, tab string, handler EventCallback, once bool) (*EventSubscription, error) {
 	if handler == nil {
 		return nil, ErrNilEventCallback
 	}
 
-	route := eventRoute{event: event, context: context}
+	route := eventRoute{event: event, context: context, tab: tab}
 	identity := handlerIdentity(handler)
 
 	e.mu.Lock()
@@ -231,19 +231,29 @@ func (e *EventEmitter) snapshot(event string, context string) ([]*EventSubscript
 	if e.closed {
 		return nil, ErrEventEmitterClosed
 	}
+	subscriptions := make([]*EventSubscription, 0)
+	for route, routeSubs := range e.routes {
+		if routeSubs == nil {
+			continue
+		}
 
-	exactRoute := eventRoute{event: event, context: context}
-	subscriptions := make([]*EventSubscription, 0, len(e.routes[exactRoute]))
-	subscriptions = appendSubscriptions(subscriptions, e.routes[exactRoute])
+		if route.event == event && route.context == context {
+			subscriptions = appendSubscriptions(subscriptions, routeSubs)
+			continue
+		}
 
-	if context != "" {
-		globalRoute := eventRoute{event: event, context: ""}
-		subscriptions = appendSubscriptions(subscriptions, e.routes[globalRoute])
-	} else {
-		for route, routeSubscriptions := range e.routes {
-			if route.event == event && route.context != "" {
-				subscriptions = appendSubscriptions(subscriptions, routeSubscriptions)
-			}
+		if context != "" &&
+			route.event == event &&
+			route.context == "" {
+			subscriptions = appendSubscriptions(subscriptions, routeSubs)
+			continue
+		}
+
+		if context == "" &&
+			route.event == event &&
+			route.context != "" {
+			subscriptions = appendSubscriptions(subscriptions, routeSubs)
+			continue
 		}
 	}
 
